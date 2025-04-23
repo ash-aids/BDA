@@ -1,0 +1,350 @@
+1. Mongo DB: Installation and Creation of database and Collection CRUD Document: Insert, Query, Update and Delete Document.
+
+// Create or switch to a database named 'college'
+use college
+
+// Create a collection named 'students'
+db.createCollection("students")
+
+// Insert a single student document
+db.students.insertOne({
+    roll_no: 101,
+    name: "Aryan Gole",
+    branch: "AI & DS",
+    marks: 85
+})
+
+// Insert multiple documents
+db.students.insertMany([
+    { roll_no: 102, name: "Neha Sharma", branch: "AI & DS", marks: 78 },
+    { roll_no: 103, name: "Rohit Mehta", branch: "Computer", marks: 92 },
+    { roll_no: 104, name: "Sara Khan", branch: "IT", marks: 69 }
+])
+
+// Find all documents in the 'students' collection
+db.students.find()
+
+// Find students with marks greater than 80
+db.students.find({ marks: { $gt: 80 } })
+
+// Find a student by roll number
+db.students.findOne({ roll_no: 101 })
+
+// Update marks of a student
+db.students.updateOne(
+    { roll_no: 104 },
+    { $set: { marks: 75 } }
+)
+
+// Update branch for all students in "IT"
+db.students.updateMany(
+    { branch: "IT" },
+    { $set: { branch: "Information Technology" } }
+)
+
+// Delete a single student record
+db.students.deleteOne({ roll_no: 103 })
+
+// Delete all students with marks less than 70
+db.students.deleteMany({ marks: { $lt: 70 } })
+
+# Theory
+
+Introduction to MongoDB
+MongoDB is a NoSQL, document-oriented database used for high volume data storage. Instead of using tables and rows (like in relational databases), MongoDB stores data in JSON-like documents with dynamic schemas.
+
+CRUD Operations
+CRUD stands for Create, Read, Update, and Delete — the four basic operations for managing data in MongoDB.
+
+Create (Insert): To add documents to a collection, we use insertOne() or insertMany().
+insertOne() adds a single document.
+insertMany() adds multiple documents.
+
+Read (Query): To retrieve documents, we use find() or findOne().
+find() returns all matching documents.
+findOne() returns the first matching document.
+
+Update: To modify existing documents, we use updateOne() or updateMany() with the $set operator.
+updateOne() modifies the first matching document.
+updateMany() modifies all matching documents.
+
+Delete: To remove documents, we use deleteOne() or deleteMany().
+deleteOne() deletes the first matching document.
+deleteMany() deletes all matching documents.
+
+=====================================================================================================================================================
+2. Develop a MapReduce program to calculate the frequency of a given word in a given file.
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# word_freq.py
+
+from mrjob.job import MRJob
+from mrjob.step import MRStep
+import string
+
+class WordFrequency(MRJob):
+    uin = [word.strip().lower() for word in input("Enter words (Eg: a, b, c): ").lower().split(',')]
+    
+    def steps(self):
+        return [
+            MRStep(mapper=self.mapper_extract_words,
+                   reducer=self.reducer_count_frequency)
+        ]
+
+    def mapper_extract_words(self, _, text):
+        translator = str.maketrans('', '', string.punctuation)
+        text_without_punctuations = text.translate(translator)
+        
+
+        words_list = text_without_punctuations.split()
+
+        for word in words_list:
+            yield word.lower(), 1
+
+    def reducer_count_frequency(self, key, values):
+        if key in self.uin:
+            yield key, sum(values)
+
+
+if __name__ == "__main__":
+    WordFrequency.run()
+
+# story.txt
+
+In a land filled with excitement and curiosity, an adventurous soul named Alex yearned for an adventure. Alex dreamt of exploring mysterious places and unearthing hidden treasures that lay beneath the surface.
+
+One day, Alex stumbled upon a map leading to a mysterious island known for its hidden wonders. The promise of thrilling adventures fueled Alex's determination to uncover the long-lost treasures.
+
+Equipped with a trusty compass and a heart full of courage, Alex set sail to the mysterious island. The journey was filled with excitement, as every step brought the anticipation of a new discovery.
+
+Upon reaching the island, Alex encountered ancient ruins, each holding secrets waiting to be unveiled. The air buzzed with the thrill of the unknown, and every corner seemed to whisper tales of forgotten treasures.
+
+As the sun dipped below the horizon, casting a golden glow on the landscape, Alex marveled at the incredible adventure. The journey had been more than a quest for treasure; it was a soul-stirring exploration of the mysterious.
+
+And so, under the starlit sky, Alex realized that the greatest treasures were not gold or jewels but the memories of a daring adventure and the joy of unlocking the mysterious wonders of the world.
+
+The end.
+
+# CLI
+# pip install mrjob
+# python word_freq.py story.txt
+
+# Theory
+
+Theory:
+
+MapReduce is a programming model suitable for processing large datasets in a distributed environment. To calculate the frequency of a word using MapReduce, the problem is divided into two main functions: Map and Reduce.
+
+Mapper Function:
+Takes input in the form of lines from a text file.
+Splits each line into words.
+Emits each word with a count of 1 in the form of a key-value pair: (word, 1).
+
+Reducer Function:
+Accepts the list of values associated with the same word key.
+Sums up the values to get the total frequency of that word.
+Emits the word along with its total count: (word, total_count).
+
+=====================================================================================================================================================
+3. Implement Matrix Multiplication using Map-Reduce
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# matmul.py
+
+from mrjob.job import MRJob
+from mrjob.step import MRStep
+
+class MatrixMultiplicationJob(MRJob):
+    
+    def steps(self):
+        return [
+            MRStep(mapper=self.mapper,
+                   reducer=self.reducer)
+        ]
+
+    def mapper(self, _, line):
+        matrix_strs = line.split(' ')
+        matrix1 = list(eval(matrix_strs[0]))
+        matrix2 = list(eval(matrix_strs[1]))
+        yield f'Product of {matrix1} and {matrix2}: ', [matrix1, matrix2]
+
+    def reducer(self, key, values):
+        values_list = list(values)
+        result_matrix = self.matrix_multiply(
+            values_list[0][0], values_list[0][1])
+        yield key, result_matrix
+
+    def matrix_multiply(self, matrix1, matrix2):
+        result_matrix = []
+        for i in range(len(matrix1)):
+            row = []
+            for j in range(len(matrix2[0])):
+                sum_val = 0
+                for k in range(len(matrix2)):
+                    sum_val += matrix1[i][k] * matrix2[k][j]
+                row.append(sum_val)
+            result_matrix.append(row)
+        return result_matrix
+
+
+if __name__ == '__main__':
+    MatrixMultiplicationJob.run()
+
+
+# mats.txt
+
+[[1,2],[3,4]] [[5,6],[7,8]]
+[[2,2],[3,1]] [[5,7],[9,8]]
+
+# CLI
+# pip install mrjob
+# C:\Users\golea>cd downloads
+# C:\Users\golea\Downloads>python matmul.py mats.txt
+
+# Theory
+
+Matrix multiplication involves computing the dot product of rows and columns of two matrices.
+
+If we have:
+Matrix A of size M x N
+Matrix B of size N x P
+The result will be matrix C of size M x P
+
+MapReduce Approach:
+
+Mapper Function:
+Emits intermediate key-value pairs where the key is the position in the result matrix and the value contains the matrix name, index, and value.
+For matrix A: emit (i, k) as key with value from A.
+For matrix B: emit (i, k) as key with value from B.
+
+Reducer Function:
+Receives all values for a particular (i, k) in the result matrix.
+Computes the dot product of the corresponding row from A and column from B.
+Emits (i, k, value) for result matrix C.
+
+=====================================================================================================================================================
+4. Develop a MapReduce program to find the grades of students.
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# grades.py
+
+from mrjob.job import MRJob
+from mrjob.step import MRStep
+import csv
+
+
+class CalculateGrades(MRJob):
+
+    def steps(self):
+        return [
+            MRStep(mapper=self.mapper,
+                   reducer=self.reducer)
+        ]
+
+    def mapper(self, _, line):
+        if line.startswith('id'):
+            return
+
+        reader = csv.reader([line])
+        for row in reader:
+            name, math, english = str(row[1]), int(row[2]), int(row[3])
+            total_marks = math + english
+            percentage = (total_marks / 200) * 100
+            yield None, {'name': name, 'percentage': percentage}
+
+    def reducer(self, key, values):
+        for student_info in values:
+            percentage = student_info['percentage']
+            grade = self.assign_grade(percentage)
+            yield student_info['name'], grade
+
+    def assign_grade(self, percentage):
+        if percentage < 40:
+            return 'Fail'
+        elif 40 <= percentage < 60:
+            return 'D'
+        elif 60 <= percentage < 70:
+            return 'C'
+        elif 70 <= percentage < 80:
+            return 'B'
+        elif 80 <= percentage < 90:
+            return 'A'
+        else:
+            return 'A+'
+
+
+if __name__ == "__main__":
+    CalculateGrades.run()
+
+# CLI
+# C:\Users\golea>cd downloads
+# C:\Users\golea\Downloads>pip install mrjob
+# C:\Users\golea\Downloads>python grades.py marks.csv
+
+# Theory
+
+This MapReduce program calculates the final grade of students based on their marks.
+
+Input:
+Each record contains a student ID and their marks in subjects.
+
+Mapper Function:
+Takes input as lines of student data.
+Emits key-value pairs: (student_id, marks).
+
+Reducer Function:
+Accepts all marks associated with a student ID.
+Computes total and/or average.
+Determines grade based on defined criteria (e.g., A for >75%, B for 60-75%, etc.).
+Emits (student_id, grade).
+=====================================================================================================================================================
+5. Visualization: Connect to data, Build Charts and Analyze Data, Create Dashboard, Create Stories using Tableau/PowerBI. 
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+# Theory
+
+Introduction
+Data visualization is the graphical representation of information and data. Tools like Tableau and Power BI allow users to create interactive and shareable dashboards, reports, and stories from various data sources. These tools are widely used in business intelligence for making data-driven decisions.
+
+Key Components of Data Visualization Process
+1. Connect to Data
+Before creating any visualization, the first step is to connect the tool to the data source.
+
+Tableau and Power BI support various data sources like:
+Excel, CSV, SQL Server, Oracle
+Cloud services like Google Sheets, Azure, AWS, etc.
+Web data connectors and APIs
+Purpose: Import the data into the tool to start analyzing it.
+
+2. Build Charts and Analyze Data
+Once data is connected, users can build charts to visually represent the data.
+
+Common chart types include:
+Bar Chart – for comparison
+Line Chart – for trends over time
+Pie Chart – for proportions
+Scatter Plot – for correlation
+Tree Map, Heat Map, Histogram, Box Plot, etc.
+
+Key Features:
+Drag and drop fields to create visuals
+Apply filters, calculations, and aggregations
+Use slicers or drop-downs for interactive filtering (Power BI)
+
+Purpose: Gain insights and identify patterns or trends in data.
+
+✅ 3. Create Dashboards
+A dashboard is a collection of multiple visualizations (charts, graphs, maps) displayed on a single screen.
+
+In Power BI:
+Pin visuals to dashboards
+Add slicers and buttons for interactivity
+
+Purpose: Provide a unified view of business metrics and KPIs for easy monitoring and decision-making.
+
+✅ 4. Create Stories
+A story is a sequence of sheets or dashboards that work together to convey a narrative or business insight.
+
+While it doesn’t have a native "story" feature like Tableau, users can:
+Create multiple pages in a report
+Use bookmarks and buttons to simulate story flow
+
+Purpose: Present findings in a logical, interactive, and user-friendly format.
+
